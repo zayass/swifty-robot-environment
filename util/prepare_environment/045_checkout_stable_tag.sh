@@ -1,1 +1,1 @@
-for d in ./swift-source/*/ ; do (cd "$d" && git checkout tags/swift-3.1-DEVELOPMENT-SNAPSHOT-2017-01-22-a && submodule update --init --recursive); done
+for d in ./swift-source/*/ ; do (cd "$d" && git checkout tags/swift-DEVELOPMENT-SNAPSHOT-2017-01-13-a && git submodule update --init --recursive); done
