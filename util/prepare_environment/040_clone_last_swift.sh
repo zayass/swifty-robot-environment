@@ -5,8 +5,6 @@
 # Version 0.2 (2016-12-30)
 #
 # Dependencies: swift @ github/apple
-#               approved_prs @ pick.ly
-#               api @ github
 #
 
 source .profile
@@ -14,39 +12,41 @@ source .profile
 export APPROVED_PRS_URL=http://pick.ly/swiftyrobot/util/approved_prs.php
 export GIT_URL_SWIFT=https://github.com/apple/swift.git
 
-function check_pr_mergeability {
-        curl -s https://api.github.com/repos/$1/$2/pulls/$3 | python -c 'import json, sys; j = json.loads(sys.stdin.read()); exit(0 if (j["state"] == "open" and j["mergeable"]) else 127)' > /dev/null 2> /dev/null
+tag="swift-DEVELOPMENT-SNAPSHOT-2017-03-19-a"
+patches="swift-corelibs-libdispatch 228"
+
+function checkout_tag {
+	for d in *
+	do
+	pushd "$d"
+		git checkout tags/$1
+		git submodule update --init --recursive
+	popd
+	done
 }
 
 function fetch_pr {
-        curl -s https://patch-diff.githubusercontent.com/raw/$1/$2/pull/$3.patch > pr_$3.patch
+        curl -s https://patch-diff.githubusercontent.com/raw/apple/$1/pull/$2.patch > pr_$2.patch
 }
 
 function apply_pr {
-        echo -n "Applying $1/$2#$3 from to $2: "
-        if check_pr_mergeability $@; then
+	fetch_pr $@
 
-                fetch_pr $@
+	pushd $1 > /dev/null
+		if git apply --check ../pr_$2.patch; then
+			git apply ../pr_$2.patch > /dev/null 2> /dev/null
+			echo "Done!"
+		else
+			echo "Path failed..."
+			exit 127
+		fi
+	popd > /dev/null
 
-                pushd $2 > /dev/null
-                        if git apply --check ../pr_$3.patch; then
-                                git apply ../pr_$3.patch > /dev/null 2> /dev/null
-                                echo "Done!"
-                        else
-                                echo "Path failed..."
-				exit 127
-                        fi
-                popd > /dev/null
-
-                rm pr_$3.patch
-
-        else
-                echo "Closed or not mergeable..."
-        fi
+	rm pr_$2.patch
 }
 
-function apply_approved_prs {
-        curl -s $APPROVED_PRS_URL | while read PR; do
+function apply_patches {
+        echo $patches | while read PR; do
                 apply_pr $PR
         done
 }
@@ -56,7 +56,8 @@ git clone $GIT_URL_SWIFT swift-source/swift
 
 pushd swift-source
 	swift/utils/update-checkout --clone
-	apply_approved_prs
+	checkout_tag $tag
+	apply_patches
 popd
 
 echo 'export SWIFT_ANDROID_SOURCE="'`realpath ./swift-source`'"' >> .profile
