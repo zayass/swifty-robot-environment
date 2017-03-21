@@ -15,16 +15,6 @@ export GIT_URL_SWIFT=https://github.com/apple/swift.git
 tag="swift-DEVELOPMENT-SNAPSHOT-2017-03-19-a"
 patches="swift-corelibs-libdispatch 228"
 
-function checkout_tag {
-	for d in *
-	do
-	pushd "$d"
-		git checkout tags/$1
-		git submodule update --init --recursive
-	popd
-	done
-}
-
 function fetch_pr {
         curl -s https://patch-diff.githubusercontent.com/raw/apple/$1/pull/$2.patch > pr_$2.patch
 }
@@ -56,7 +46,7 @@ git clone $GIT_URL_SWIFT swift-source/swift
 
 pushd swift-source
 	swift/utils/update-checkout --clone
-	checkout_tag $tag
+	swift/utils/update-checkout --tag $tag
 	apply_patches
 popd
 
